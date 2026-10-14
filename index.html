@@ -1,0 +1,829 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="A 1v1v1 rare-answer trivia dive. The more niche your correct answer, the deeper you sink.">
+<title>Trench Trivia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;800&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: a dive console. Prompt panel on the left, three descending depth gauges on the right; the water darkens as you sink. Single deep-sea look. */
+:root {
+  --ink: #e8f6f8;
+  --dim: #8db4c0;
+  --faint: rgba(141, 180, 192, 0.22);
+  --panel: rgba(4, 20, 32, 0.72);
+  --sonar: #4ff0d0;
+  --p1: #ff7b6b;
+  --p2: #6fb8ff;
+  --p3: #ffd166;
+  --t0: #a8ecf7; --t1: #5fd3e6; --t2: #4a8dd8; --t3: #7d6bf0; --t4: #c35cf0; --t5: #ff4fa3;
+  --display: "Unbounded", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+html, body { min-height: 100%; }
+body { margin: 0; }
+*, *::before, *::after { box-sizing: border-box; }
+body { background: #0b4560; color: var(--ink); font: 15px/1.5 var(--body); transition: background 1.2s ease; }
+@media (prefers-reduced-motion: reduce) { body { transition: none; } * { animation: none !important; } }
+.wrap { max-width: 1100px; margin: 0 auto; padding-block: 18px 40px; padding-inline: 16px; display: grid; gap: 16px; }
+header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.brand { font: 800 20px var(--display); letter-spacing: -0.01em; display: flex; align-items: center; gap: 10px; }
+.brand i { width: 10px; height: 10px; border-radius: 50%; background: var(--sonar); box-shadow: 0 0 0 0 var(--sonar); animation: ping 2.4s infinite; }
+@keyframes ping { 0% { box-shadow: 0 0 0 0 rgba(79,240,208,0.6); } 80%, 100% { box-shadow: 0 0 0 14px rgba(79,240,208,0); } }
+.meta { font: 600 12px var(--mono); color: var(--dim); letter-spacing: 0.08em; text-transform: uppercase; display: flex; gap: 14px; flex-wrap: wrap; }
+.meta b { color: var(--ink); }
+.console { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
+@media (max-width: 820px) { .console { grid-template-columns: 1fr; } }
+.panel { background: var(--panel); border: 1px solid var(--faint); border-radius: 14px; padding: 22px; display: grid; gap: 16px; min-width: 0; backdrop-filter: blur(6px); }
+h1 { font: 800 clamp(34px, 7vw, 64px)/0.95 var(--display); margin: 0; letter-spacing: -0.03em; text-wrap: balance; }
+h2 { font: 800 clamp(22px, 3.6vw, 34px)/1.15 var(--display); margin: 0; letter-spacing: -0.02em; text-wrap: balance; }
+h3 { font: 600 11px var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--dim); margin: 0; }
+p { margin: 0; max-width: 62ch; }
+.lede { color: var(--dim); font-size: 16px; }
+.lede b { color: var(--ink); }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.stack { display: grid; gap: 10px; }
+button { font: 600 15px var(--body); border: 0; border-radius: 999px; padding: 11px 22px; cursor: pointer; background: var(--sonar); color: #022a24; }
+button:hover:not(:disabled) { filter: brightness(1.08); }
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+button.ghost { background: transparent; color: var(--ink); border: 1px solid var(--faint); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--sonar); outline-offset: 2px; }
+input { font: 600 17px var(--body); color: var(--ink); background: rgba(0, 0, 0, 0.3); border: 1px solid var(--faint); border-radius: 10px; padding: 11px 14px; min-width: 0; }
+input.code { font: 600 20px var(--mono); letter-spacing: 0.3em; text-transform: uppercase; width: 8.5em; }
+.field { display: grid; gap: 6px; }
+.field label { font: 600 11px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); }
+.note { font-size: 13px; color: var(--dim); }
+.modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.mode { border: 1px solid var(--faint); border-radius: 12px; padding: 16px; display: grid; gap: 10px; align-content: start; }
+.ladder { display: grid; gap: 4px; }
+.rung { display: grid; grid-template-columns: 12px 1fr auto auto; gap: 10px; align-items: center; font-size: 13px; }
+.rung i { width: 12px; height: 12px; border-radius: 3px; background: var(--c); }
+.rung span:nth-child(3) { font-family: var(--mono); color: var(--dim); }
+.rung span:nth-child(4) { font-family: var(--mono); color: var(--ink); min-width: 4.5em; text-align: right; }
+.bigcode { font: 800 clamp(40px, 9vw, 72px) var(--mono); letter-spacing: 0.18em; color: var(--sonar); }
+.seats { display: grid; gap: 8px; }
+.seat { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--faint); border-left: 4px solid var(--c); border-radius: 10px; min-width: 0; }
+.seat .nm { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
+.seat .st { font: 600 12px var(--mono); color: var(--dim); }
+.seat.empty { border-style: dashed; border-left-style: solid; color: var(--dim); }
+.prompt { font: 800 clamp(24px, 4.4vw, 40px)/1.12 var(--display); letter-spacing: -0.02em; text-wrap: balance; margin: 0; }
+.answerbar { display: flex; gap: 10px; flex-wrap: wrap; }
+.answerbar input { flex: 1 1 220px; }
+.timer { display: flex; align-items: center; gap: 12px; }
+.timer .track { flex: 1; height: 6px; border-radius: 3px; background: var(--faint); overflow: hidden; }
+.timer .track b { display: block; height: 100%; background: var(--sonar); transition: width 0.25s linear; }
+.timer .secs { font: 600 18px var(--mono); min-width: 2.4em; text-align: right; font-variant-numeric: tabular-nums; }
+.timer.low .track b { background: #ff6b6b; } .timer.low .secs { color: #ff8b8b; }
+.feedback { min-height: 1.5em; font-weight: 600; }
+.feedback.bad { color: #ff9b8b; }
+.feedback.good { color: var(--sonar); }
+.locked { display: grid; gap: 6px; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--c, var(--faint)); background: rgba(0,0,0,0.2); }
+.locked .ans { font: 800 22px var(--display); }
+.chip { display: inline-flex; align-items: center; gap: 6px; font: 600 11px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 9px; border-radius: 999px; background: color-mix(in srgb, var(--c) 22%, transparent); color: var(--c); border: 1px solid color-mix(in srgb, var(--c) 55%, transparent); white-space: nowrap; }
+.results { display: grid; gap: 10px; }
+.res { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 14px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--faint); border-left: 4px solid var(--c); }
+.res .who { font: 600 12px var(--mono); color: var(--c); letter-spacing: 0.06em; text-transform: uppercase; }
+.res .what { font: 800 19px var(--display); overflow-wrap: anywhere; }
+.res .what.none { color: var(--dim); font-weight: 500; font-family: var(--body); font-size: 15px; }
+.res .pts { grid-row: 1 / span 2; grid-column: 2; align-self: center; text-align: right; font: 600 22px var(--mono); }
+.res .pts small { display: block; font-size: 11px; color: var(--dim); }
+.deeper { display: flex; flex-wrap: wrap; gap: 6px; }
+.podium { display: grid; gap: 10px; }
+.gauges { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); }
+.gwrap { display: grid; grid-template-columns: 44px repeat(3, minmax(0, 1fr)); gap: 6px; height: 420px; }
+@media (max-width: 820px) { .gauges { position: static; } .gwrap { height: 260px; } }
+.scale { position: relative; font: 500 10px var(--mono); color: var(--dim); }
+.scale span { position: absolute; right: 0; transform: translateY(-50%); }
+.col { position: relative; border-radius: 8px; background: linear-gradient(180deg, rgba(168,236,247,0.10), rgba(0,0,0,0.25)); border: 1px solid var(--faint); overflow: hidden; }
+.col .zone { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--faint); }
+.col .line { position: absolute; left: 50%; top: 0; width: 2px; margin-left: -1px; background: var(--c); opacity: 0.55; transition: height 1s cubic-bezier(.2,.8,.2,1); }
+.col .diver { position: absolute; left: 50%; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%; background: var(--c); box-shadow: 0 0 14px var(--c); transition: top 1s cubic-bezier(.2,.8,.2,1); }
+.gnames { display: grid; grid-template-columns: 44px repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
+.gnames div { text-align: center; min-width: 0; }
+.gnames .n { font: 600 12px var(--body); color: var(--c); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gnames .d { font: 600 13px var(--mono); font-variant-numeric: tabular-nums; }
+.gnames .s { font: 500 10px var(--mono); color: var(--dim); }
+.tag { font: 600 11px var(--mono); color: var(--dim); }
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header>
+    <div class="brand"><i></i>Trench Trivia</div>
+    <div class="meta" id="meta"></div>
+  </header>
+  <div class="console">
+    <section class="panel" id="main" aria-live="polite"></section>
+    <aside class="panel gauges" id="gauges" aria-label="Dive depths"></aside>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
+<script>
+// Prompt bank. Tiers 0-4 run from most common to rarest; h is the single rarest answer.
+// Answers are comma separated; aliases for the same answer are joined with "/".
+const BANK = [
+{p:"Name a cheese", h:"pule", t:[
+"cheddar,mozzarella,parmesan/parmigiano reggiano/parmigiano,swiss,american",
+"brie,gouda,feta,provolone,blue cheese/blue,monterey jack/jack,colby,pepper jack,cream cheese,ricotta,camembert",
+"gruyere,havarti,goat cheese/chevre,cottage cheese,muenster/munster,gorgonzola,stilton,manchego,halloumi,mascarpone,roquefort,emmental/emmentaler,edam,asiago,burrata,pecorino/pecorino romano,colby jack",
+"fontina,jarlsberg,paneer,queso fresco,comte,raclette,wensleydale,limburger,cotija,oaxaca,red leicester,double gloucester,boursin,string cheese,mimolette,gjetost/brunost",
+"taleggio,epoisses,reblochon,caciocavallo,scamorza,stracchino,morbier,livarot,pont l'eveque,tete de moine,valencay,ossau iraty,idiazabal,mahon,cabrales,leerdammer,port salut,saint agur,cashel blue,stinking bishop,lancashire,caerphilly,cheshire,sbrinz,appenzeller,vacherin,kashkaval,sulguni,chhena,juustoleipa,bryndza,casu marzu"]},
+{p:"Name a country in Africa", h:"comoros", t:[
+"egypt,south africa,nigeria,kenya,morocco",
+"ethiopia,ghana,madagascar,somalia,sudan,algeria,libya,tunisia,uganda,tanzania,zimbabwe,congo/republic of the congo/democratic republic of the congo/drc/dr congo,rwanda,senegal",
+"cameroon,ivory coast/cote d'ivoire,mali,niger,chad,angola,namibia,botswana,zambia,mozambique,liberia,sierra leone,south sudan,eritrea,mauritania,malawi",
+"burkina faso,benin,togo,gabon,guinea,gambia,lesotho,eswatini/swaziland,burundi,djibouti,mauritius,seychelles,cape verde/cabo verde,central african republic",
+"equatorial guinea,guinea bissau,sao tome and principe/sao tome"]},
+{p:"Name a planet, dwarf planet, or moon in our solar system", h:"pan", t:[
+"earth,mars,jupiter,saturn,moon",
+"venus,mercury,neptune,uranus,pluto",
+"titan,europa,io,ganymede,callisto,phobos,deimos,ceres",
+"enceladus,triton,charon,miranda,oberon,titania,mimas,iapetus,rhea,dione,eris,makemake,haumea",
+"tethys,hyperion,phoebe,umbriel,ariel,nereid,proteus,amalthea,himalia,janus,epimetheus,pandora,prometheus,hydra,nix,kerberos,styx,puck,larissa,metis,thebe,adrastea,dysnomia,hiiaka,namaka,sedna,quaoar,gonggong,orcus,vanth,weywot"]},
+{p:"Name a dog breed", h:"telomian", t:[
+"labrador/labrador retriever/lab,golden retriever,german shepherd,poodle,bulldog,chihuahua",
+"husky/siberian husky,beagle,pug,rottweiler,dachshund,pit bull/pitbull,boxer,corgi/welsh corgi,shih tzu,yorkshire terrier/yorkie,french bulldog/frenchie,border collie,great dane,doberman/doberman pinscher,pomeranian",
+"australian shepherd,maltese,cocker spaniel,bernese mountain dog,saint bernard/st bernard,greyhound,dalmatian,shiba inu,akita,bichon frise,cavalier king charles spaniel,mastiff,samoyed,schnauzer,jack russell/jack russell terrier,basset hound,bloodhound,chow chow,newfoundland,collie",
+"weimaraner,vizsla,whippet,bull terrier,papillon,malamute/alaskan malamute,great pyrenees,irish setter,rhodesian ridgeback,havanese,boston terrier,shar pei,westie/west highland terrier/west highland white terrier,scottish terrier,afghan hound,borzoi,basenji,sheltie/shetland sheepdog,staffordshire bull terrier,cane corso,keeshond,lhasa apso,pekingese,irish wolfhound,airedale/airedale terrier,chinese crested",
+"xoloitzcuintli/xolo,komondor,puli,lagotto romagnolo,azawakh,saluki,otterhound,bergamasco,kooikerhondje,mudi,sloughi,catahoula,leonberger,plott hound,chinook,dandie dinmont terrier,sealyham terrier,norwegian lundehund,thai ridgeback,tibetan mastiff,peruvian inca orchid,schipperke,affenpinscher,briard,kuvasz,spinone italiano/spinone,coton de tulear,bedlington terrier,glen of imaal terrier,nova scotia duck tolling retriever/toller,cesky terrier"]},
+{p:"Name a Shakespeare play", h:"edward iii/edward the third/edward 3", t:[
+"romeo and juliet,hamlet,macbeth",
+"a midsummer night's dream/midsummer,othello,king lear,julius caesar,the tempest",
+"much ado about nothing,twelfth night,the merchant of venice,the taming of the shrew,as you like it,richard iii/richard the third/richard 3,henry v/henry the fifth/henry 5,antony and cleopatra",
+"the merry wives of windsor,measure for measure,the comedy of errors,the winter's tale,coriolanus,titus andronicus,richard ii/richard the second/richard 2,henry iv/henry iv part 1/henry iv part 2/henry the fourth/henry 4,all's well that ends well,love's labour's lost/loves labors lost",
+"cymbeline,pericles,troilus and cressida,timon of athens,the two gentlemen of verona,henry vi/henry vi part 1/henry vi part 2/henry vi part 3/henry the sixth/henry 6,king john,henry viii/henry the eighth/henry 8,the two noble kinsmen"]},
+{p:"Name a chemical element", h:"oganesson", t:[
+"oxygen,hydrogen,carbon,gold,iron,helium",
+"nitrogen,silver,copper,sodium,calcium,neon,lead,uranium,aluminum/aluminium,zinc,chlorine,potassium,mercury,platinum",
+"lithium,magnesium,sulfur/sulphur,phosphorus,silicon,titanium,tin,nickel,iodine,fluorine,argon,plutonium,radium,cobalt,chromium,tungsten,boron",
+"krypton,xenon,radon,manganese,arsenic,bromine,beryllium,cesium/caesium,strontium,barium,bismuth,cadmium,palladium,vanadium,selenium,gallium,germanium,francium,americium,einsteinium,polonium,thorium,osmium,iridium,zirconium,molybdenum,tantalum,rubidium,scandium,antimony",
+"hafnium,rhenium,rhodium,ruthenium,indium,tellurium,thallium,yttrium,lanthanum,cerium,neodymium,praseodymium,promethium,samarium,europium,gadolinium,terbium,dysprosium,holmium,erbium,thulium,ytterbium,lutetium,niobium,technetium,astatine,actinium,protactinium,neptunium,curium,berkelium,californium,fermium,mendelevium,nobelium,lawrencium,rutherfordium,dubnium,seaborgium,bohrium,hassium,meitnerium,darmstadtium,roentgenium,copernicium,nihonium,flerovium,moscovium,livermorium,tennessine"]},
+{p:"Name a shape of pasta", h:"su filindeu", t:[
+"spaghetti,penne,macaroni,lasagna/lasagne,fettuccine/fettucine",
+"ravioli,linguine,rigatoni,farfalle/bow tie/bowtie,rotini,tortellini,angel hair/capellini,fusilli,ziti,orzo",
+"gnocchi,shells/conchiglie,manicotti,cannelloni,tagliatelle,pappardelle,orecchiette,bucatini,ditalini,vermicelli,elbow/elbows,cavatappi,campanelle,gemelli",
+"radiatori,rotelle/wagon wheels,paccheri,tortelloni,agnolotti,cavatelli,strozzapreti,trofie,mafaldine/mafalda,stelline,acini di pepe,casarecce,perciatelli,tagliolini,fregola/fregula,pastina,anelli",
+"lumache,garganelli,mezzelune,corzetti,cappelletti,lorighittas,pici,busiate,malloreddus,sorpresine,scialatielli,culurgiones,fileja,fiori,quadrefiore,sagne,bigoli,maltagliati,testaroli,creste di gallo,tortiglioni,calamarata"]},
+{p:"Name a Pixar feature film or short", h:"mike's new car", t:[
+"toy story,finding nemo,cars,up,inside out,monsters inc",
+"the incredibles,ratatouille,wall e/walle,coco,toy story 2,toy story 3,finding dory,monsters university",
+"a bug's life,brave,soul,luca,turning red,toy story 4,incredibles 2,cars 2,cars 3,elemental,inside out 2",
+"onward,the good dinosaur,lightyear,elio,bao,piper,la luna,for the birds",
+"luxo jr,the adventures of andre and wally b,tin toy,red's dream,knick knack,geri's game,boundin,one man band,lifted,presto,partly cloudy,day and night,lava,the blue umbrella,sanjay's super team,purl,kitbull,loop,burrow,float,jack jack attack"]},
+{p:"Name an Olympic sport, past or present", h:"plunge for distance", t:[
+"swimming,gymnastics,track and field/athletics/track,basketball,soccer/football",
+"tennis,volleyball,boxing,diving,wrestling,cycling,figure skating,skiing/alpine skiing,ice hockey/hockey,snowboarding,golf,rowing,fencing,archery",
+"weightlifting,judo,taekwondo,table tennis/ping pong,badminton,sailing,equestrian/horse riding,water polo,handball,beach volleyball,bobsled/bobsleigh,luge,curling,speed skating,rugby/rugby sevens,triathlon,shooting,canoeing/kayaking/canoe/kayak,softball,baseball,surfing,skateboarding,ski jumping,biathlon",
+"field hockey,synchronized swimming/artistic swimming,rhythmic gymnastics,trampoline,modern pentathlon,skeleton,sport climbing/climbing,breaking/breakdancing,bmx,mountain biking,cross country skiing,nordic combined,freestyle skiing,short track/short track speed skating,karate,marathon swimming,decathlon,heptathlon",
+"tug of war,cricket,lacrosse,polo,croquet,rackets,jeu de paume,basque pelota/pelota,motorboating/motorboat racing,roque,art competitions,live pigeon shooting,rope climbing,club swinging,military patrol,skijoring,ski ballet,bandy,korfball,glima"]},
+{p:"Name a bone in the human body", h:"fabella", t:[
+"femur,skull,rib/ribs,spine/vertebra/vertebrae,humerus",
+"tibia,fibula,radius,ulna,pelvis/hip bone,clavicle/collarbone,sternum/breastbone,jaw/jawbone/mandible,patella/kneecap,scapula/shoulder blade,coccyx/tailbone",
+"phalanges/phalanx,metacarpal/metacarpals,metatarsal/metatarsals,carpal/carpals,tarsal/tarsals,sacrum,maxilla,ilium,ischium,pubis,calcaneus/heel bone,talus/ankle bone,cranium",
+"hyoid,stapes/stirrup,incus/anvil,malleus/hammer,atlas,axis,scaphoid,frontal bone,parietal bone,occipital bone,temporal bone,sphenoid,ethmoid,zygomatic/cheekbone,nasal bone,lunate,trapezium,cuboid,navicular",
+"vomer,lacrimal,palatine,inferior nasal concha,triquetrum,pisiform,trapezoid,capitate,hamate,cuneiform/medial cuneiform/intermediate cuneiform/lateral cuneiform,sesamoid,xiphoid process/xiphoid,manubrium"]},
+{p:"Name a musical instrument", h:"nail violin", t:[
+"piano,guitar,drums,violin,flute",
+"trumpet,saxophone,cello,clarinet,bass/bass guitar,ukulele,harp,trombone,keyboard,harmonica,tuba,xylophone,accordion,banjo",
+"oboe,bassoon,viola,french horn/horn,piccolo,double bass/upright bass,tambourine,mandolin,bagpipes,organ,recorder,triangle,cymbals,synthesizer,glockenspiel,timpani,marimba,sitar,bongos,harpsichord",
+"didgeridoo,theremin,cajon,djembe,steel drum/steelpan,kalimba,sousaphone,euphonium,cornet,lute,zither,dulcimer,bugle,ocarina,vibraphone,tabla,koto,shamisen,oud,balalaika,castanets,celesta,conga,melodica,hurdy gurdy,english horn/cor anglais,contrabassoon,bodhran",
+"erhu,guzheng,pipa,sheng,duduk,kora,mbira,hang/handpan,nyckelharpa,kantele,gamelan,sarangi,santoor,veena,shakuhachi,berimbau,charango,cuica,ondes martenot,serpent,ophicleide,crwth,sackbut,rebec,shawm,glass harmonica/armonica,cimbalom,bandoneon,tromba marina,washboard,jaw harp,vuvuzela,bouzouki,lyre"]},
+{p:"Name a Greek god or goddess", h:"aergia", t:[
+"zeus,poseidon,hades,athena,apollo,aphrodite",
+"ares,hermes,hera,artemis,dionysus,demeter,hephaestus,kronos/cronus",
+"persephone,nike,eros,gaia/gaea,hestia,pan,helios,selene,eos,hecate,nemesis,uranus/ouranos,rhea,tyche",
+"hypnos,thanatos,morpheus,iris,nyx,erebus,asclepius,hebe,eris,themis,mnemosyne,prometheus,atlas,oceanus,tethys,hyperion,metis,triton",
+"aether,hemera,chaos,tartarus,pontus,phanes,ananke,chronos,eileithyia,harmonia,enyo,deimos,phobos,nereus,proteus,boreas,zephyrus,notus,eurus,aeolus,priapus,plutus,hygieia,panacea,achlys,momus,oizys,pheme,peitho,eunomia,dike,eirene,lethe,coeus,crius,iapetus,phoebe,theia"]},
+{p:"Name a programming language", h:"piet", t:[
+"python,javascript,java,c,c++/cpp",
+"c#,ruby,php,swift,go/golang,typescript,sql,rust,kotlin",
+"r,perl,scala,matlab,bash/shell,objective c,assembly,dart,lua,haskell,visual basic/vb,fortran,cobol,lisp,pascal",
+"elixir,erlang,clojure,julia,f#,ocaml,prolog,scheme,groovy,zig,nim,crystal,delphi,ada,smalltalk,racket,solidity,powershell,vba,actionscript,coffeescript,elm,basic,logo,scratch,apl,d",
+"brainfuck,whitespace,malbolge,forth,simula,algol,pl i/pl1,mumps,rpg,apex,abap,idris,agda,coq/rocq,lean,haxe,purescript,reasonml,vala,rebol,tcl,awk,snobol,j,k,q,chapel,odin,mojo,gleam,verilog,vhdl,hack,pony,factor,eiffel,modula 2,oberon,befunge,intercal,lolcode"]},
+{p:"Name a fruit", h:"ilama", t:[
+"apple,banana,orange,strawberry,grape,watermelon",
+"mango,pineapple,peach,pear,cherry,blueberry,kiwi,lemon,lime,raspberry,plum,coconut,cantaloupe,grapefruit,avocado,tomato",
+"pomegranate,papaya,apricot,blackberry,nectarine,fig,honeydew,cranberry,tangerine,clementine,passion fruit,dragon fruit/pitaya,guava,lychee/litchi,date,persimmon,star fruit/carambola,olive",
+"jackfruit,durian,kumquat,quince,rambutan,mangosteen,gooseberry,elderberry,mulberry,boysenberry,loganberry,plantain,currant/blackcurrant/redcurrant,tamarind,yuzu,soursop/guanabana,cherimoya/custard apple,feijoa,pawpaw,acai,goji/goji berry,huckleberry,ugli fruit,pomelo,salak/snake fruit,longan,loquat,breadfruit,kiwano/horned melon,physalis/ground cherry",
+"miracle fruit/miracle berry,ackee,jabuticaba,cupuacu,sapodilla,mamey/mamey sapote,buddha's hand,finger lime,medlar,cloudberry,lingonberry,salmonberry,marula,santol,langsat,jambul,bilimbi,carissa,pitanga/surinam cherry,abiu,white sapote,black sapote,canistel,safou,monstera deliciosa"]},
+{p:"Name a board game", h:"kriegspiel", t:[
+"monopoly,chess,checkers/draughts,scrabble,clue/cluedo",
+"sorry,risk,the game of life/life,candy land,catan/settlers of catan,trouble,battleship,connect four/connect 4,backgammon,operation,mouse trap,guess who,pictionary,trivial pursuit",
+"ticket to ride,go,othello/reversi,mancala,chutes and ladders/snakes and ladders,stratego,parcheesi/ludo,pandemic,carcassonne,cranium,chinese checkers,hungry hungry hippos,axis and allies,mastermind,boggle,codenames,splendor,azul",
+"wingspan,gloomhaven,terraforming mars,agricola,puerto rico,power grid,twilight struggle,7 wonders/seven wonders,small world,king of tokyo,dixit,betrayal at house on the hill,scythe,root,everdell,brass/brass birmingham,the castles of burgundy,arkham horror,mahjong,shogi,xiangqi/chinese chess,nine men's morris,hnefatafl/tafl,pente,blokus,sequence,rummikub,qwirkle,stone age,cascadia,spirit island,kingdomino,patchwork,hive",
+"the royal game of ur/game of ur,senet,mehen,pachisi,chaturanga,fanorona,hex,twixt,abalone,quoridor,onitama,tigris and euphrates,el grande,through the ages,mage knight,twilight imperium,war of the ring,high frontier,food chain magnate,crokinole,carrom,tak,yinsh,zertz,la granja,viticulture,lords of waterdeep,eclipse,caylus"]},
+{p:"Name a capital city in Europe", h:"vaduz", t:[
+"paris,london,rome,berlin,madrid",
+"athens,amsterdam,vienna,dublin,moscow,lisbon,brussels,prague,stockholm,oslo,copenhagen,warsaw,budapest",
+"helsinki,bern,edinburgh,reykjavik,kyiv/kiev,bucharest,belgrade,zagreb,sofia,bratislava,luxembourg,monaco,vatican city/vatican,cardiff",
+"ljubljana,tallinn,riga,vilnius,minsk,sarajevo,tirana,skopje,podgorica,chisinau,valletta,nicosia,andorra la vella,san marino,belfast",
+"pristina,tbilisi,yerevan,baku,ankara,torshavn,douglas,st helier/saint helier,st peter port/saint peter port,gibraltar,mariehamn,longyearbyen"]},
+{p:"Name a constellation", h:"mensa", t:[
+"orion,big dipper,ursa major,little dipper",
+"ursa minor,cassiopeia,scorpius/scorpio,leo,gemini,taurus,aries,sagittarius,virgo,libra,cancer,capricorn/capricornus,aquarius,pisces",
+"andromeda,pegasus,perseus,draco,cygnus,lyra,hercules,cepheus,centaurus,crux/southern cross,canis major,canis minor,aquila,bootes,ophiuchus",
+"auriga,corona borealis,corona australis,hydra,eridanus,lupus,lepus,monoceros,delphinus,sagitta,vulpecula,lacerta,triangulum,cetus,columba,carina,vela,puppis,ara,pavo,phoenix,tucana,grus,camelopardalis,lynx,coma berenices,serpens,corvus,crater,sextans,scutum,equuleus,piscis austrinus,canes venatici,leo minor",
+"antlia,apus,caelum,chamaeleon,circinus,dorado,fornax,horologium,hydrus,indus,microscopium,musca,norma,octans,pictor,pyxis,reticulum,sculptor,telescopium,triangulum australe,volans"]},
+{p:"Name a bird that can't fly", h:"henderson crake", t:[
+"penguin,ostrich,emu,dodo,kiwi",
+"cassowary,rhea",
+"kakapo,takahe,moa,elephant bird,great auk,weka,steamer duck",
+"flightless cormorant/galapagos cormorant,inaccessible island rail,kagu,auckland teal,campbell teal",
+"titicaca grebe,lord howe woodhen,guam rail,adzebill,terror bird/phorusrhacid,laysan rail,wake island rail,dromornis/mihirung"]},
+{p:"Name a herb or spice", h:"calamus", t:[
+"pepper/black pepper,cinnamon,paprika,oregano,garlic",
+"cumin,nutmeg,ginger,turmeric,basil,thyme,rosemary,chili powder/chili,cayenne,parsley,clove/cloves,curry powder/curry",
+"cardamom,coriander,cilantro,saffron,allspice,bay leaf/bay leaves,dill,sage,mint,fennel,mustard seed/mustard,star anise,anise,vanilla,sesame,chives,tarragon,garam masala,red pepper flakes/crushed red pepper",
+"fenugreek,sumac,za'atar/zaatar,asafoetida/hing,mace,marjoram,juniper/juniper berries,caraway,nigella/kalonji/black seed,galangal,lemongrass,celery seed,five spice/chinese five spice,ras el hanout,berbere,annatto/achiote,savory,chervil,lovage,epazote,wasabi,horseradish,shichimi",
+"grains of paradise/melegueta,long pepper,cubeb,mahleb/mahlab,amchur/amchoor,ajwain/carom,kokum,black cardamom,sichuan pepper,sansho,anardana,wattleseed,pandan,makrut lime leaf/kaffir lime leaf,curry leaf,hyssop,mastic,dried lime/loomi/black lime,aleppo pepper,urfa biber,espelette,tonka bean,zedoary,grains of selim,orris root"]},
+{p:"Name a dinosaur", h:"micropachycephalosaurus", t:[
+"t rex/trex/tyrannosaurus/tyrannosaurus rex,triceratops,velociraptor/raptor,stegosaurus,brontosaurus",
+"brachiosaurus,spinosaurus,ankylosaurus,diplodocus,parasaurolophus,allosaurus,apatosaurus",
+"iguanodon,pachycephalosaurus,dilophosaurus,carnotaurus,gallimimus,compsognathus,giganotosaurus,archaeopteryx,deinonychus,oviraptor,styracosaurus,therizinosaurus,argentinosaurus,baryonyx,protoceratops,edmontosaurus,megalosaurus",
+"microraptor,utahraptor,troodon,maiasaura,corythosaurus,lambeosaurus,kentrosaurus,plateosaurus,coelophysis,ceratosaurus,carcharodontosaurus,albertosaurus,gorgosaurus,daspletosaurus,tarbosaurus,mamenchisaurus,camarasaurus,sauropelta,euoplocephalus,hadrosaurus,nodosaurus,psittacosaurus,pentaceratops,torosaurus,dreadnoughtus,suchomimus,yutyrannus,majungasaurus,herrerasaurus,eoraptor,amargasaurus,sinosauropteryx",
+"mei long,irritator,nigersaurus,masiakasaurus,minmi,leaellynasaura,mononykus,shuvuuia,epidexipteryx,yi qi,halszkaraptor,dracorex,stygimoloch,zuul,borealopelta,kosmoceratops,nothronychus,falcarius,austroraptor,concavenator,sciurumimus,tianyulong,heterodontosaurus,pegomastax,scutellosaurus,scelidosaurus,gigantoraptor,sauroposeidon,patagotitan,rajasaurus,qianzhousaurus,alioramus"]},
+{p:"Name a card game", h:"karnoffel", t:[
+"poker,blackjack,uno,go fish,solitaire",
+"war,rummy/gin rummy/gin,spades,hearts,crazy eights/crazy 8s,old maid,bridge,slapjack,spoons,euchre,president",
+"canasta,cribbage,baccarat,texas hold em/hold em,speed,egyptian ratscrew/egyptian rat screw,magic the gathering/magic,pokemon/pokemon tcg,yu gi oh/yugioh,exploding kittens,phase 10,skip bo,cards against humanity,pinochle,snap,cheat/bs/i doubt it,kings cup,pitch,spit,durak",
+"whist,bezique,piquet,skat,sheepshead,schafkopf,belote,tarot/french tarot,briscola,scopa,mus,truco,klaverjas,jass,hanafuda,big two,tien len,bourre,oh hell,nertz,500/five hundred,kemps,mao,ninety nine,hand and foot,golf,rook",
+"tute,tressette,ombre,quadrille,faro,basset,loo,brag/three card brag,commerce,primero,cucumber,sedma,marriage,tarok,ganjifa,doppelkopf,pishti,koi koi,kaiser,contract whist,schnapsen,sixty six,preference,thousand"]},
+{p:"Name a kind of tree", h:"lignum vitae", t:[
+"oak,pine,maple,palm,birch",
+"willow,cherry,redwood,sequoia,spruce,fir,cedar,elm,ash,aspen,cypress,magnolia,walnut",
+"beech,poplar,sycamore,dogwood,hickory,chestnut,baobab,eucalyptus,juniper,hemlock,larch,yew,mahogany,teak,olive,banyan,acacia,alder,hazel,linden/lime tree/basswood,cottonwood,joshua tree",
+"hawthorn,rowan/mountain ash,holly,sassafras,buckeye,horse chestnut,ginkgo,tamarack,catalpa,mesquite,ironwood,balsa,ebony,rosewood,kapok,jacaranda,sweetgum,tulip tree/tulip poplar,black locust/locust,mimosa,crepe myrtle,honey locust,hornbeam,boxwood,monkey puzzle,dragon blood tree/dragon tree,bristlecone pine/bristlecone,cork oak,sandalwood,neem,tupelo",
+"wollemi pine,dawn redwood/metasequoia,osage orange,pawpaw,paulownia,kauri,rimu,totara,pohutukawa,jarrah,karri,wingnut,katsura,sourwood,hophornbeam,serviceberry,medlar,ailanthus/tree of heaven,sweetbay,coolibah,boab,quiver tree,sausage tree,manchineel,upas,umbrella thorn,bunya pine,norfolk island pine,araucaria,deodar,lacebark,hackberry,yellowwood,blackgum"]},
+{p:"Name a martial art or combat sport", h:"bartitsu", t:[
+"karate,kung fu,taekwondo,judo,boxing",
+"jiu jitsu/jujitsu/brazilian jiu jitsu/bjj,muay thai,kickboxing,mma/mixed martial arts,wrestling,aikido,krav maga,tai chi",
+"capoeira,wing chun,kendo,hapkido,sambo,savate,jeet kune do,sumo,fencing,silat/pencak silat,eskrima/escrima/arnis/kali,ninjutsu,kenjutsu,iaido,shaolin",
+"kyokushin,shotokan,systema,lethwei,bokator,kalaripayattu,sanda/sanshou,baguazhang,xingyiquan,hung gar,choy li fut,bajiquan,kyudo,naginatajutsu/naginata,vale tudo,luta livre,catch wrestling,glima,schwingen,pankration,yaw yan,kajukenbo,kudo,shorinji kempo,kenpo",
+"tessenjutsu,bojutsu,sojutsu,kusarigamajutsu,bataireacht,canne de combat/la canne,zipota,okichitaw,lua,limalama,dumog,sikaran,gatka,kushti/pehlwani,varma kalai,silambam,adimurai,mardani khel,thang ta,bokh,ssireum,taekkyon,subak,kurash,yagli gures/oil wrestling,gouren,lucha canaria,hojojutsu"]},
+{p:"Name a unit of measurement", h:"beard second", t:[
+"inch,foot/feet,meter/metre,mile,pound,kilogram/kg,centimeter/cm",
+"yard,gallon,liter/litre,ounce,ton/tonne,second,minute,hour,kilometer/km,gram,cup,degree,millimeter/mm,celsius,fahrenheit",
+"watt,volt,ampere/amp,joule,newton,kelvin,calorie,pint,quart,teaspoon,tablespoon,acre,hectare,decibel,hertz,byte,kilobyte,megabyte,gigabyte,bit,horsepower,light year,mole,ohm,pascal,psi,knot,fluid ounce,stone,mph",
+"candela,coulomb,farad,henry,tesla,weber,siemens,lumen,lux,becquerel,gray,sievert,curie,rad,rem,angstrom,micron,nautical mile,fathom,furlong,league,rod,chain,parsec,astronomical unit/au,bar,atmosphere/atm,torr,erg,dyne,btu,therm,carat,karat,grain,dram,gill,hand,cubit,bushel,peck,barrel,cord,hogshead,firkin",
+"smoot,barn,shed,jiffy,sverdrup,debye,gauss,maxwell,oersted,poise,stokes,slug,poundal,rood,perch,link,span,ell,mil,thou,point,pica,em,twip,scruple,pennyweight,troy ounce,mutchkin,chopin,noggin,butt,tun,kip,katal,rayleigh,jansky,sabin,mho,statcoulomb,franklin,galileo/gal,abampere"]},
+{p:"Name a Beatles song", h:"you know my name/you know my name look up the number", t:[
+"hey jude,yesterday,let it be,here comes the sun,yellow submarine",
+"come together,help,all you need is love,i want to hold your hand,twist and shout,she loves you,hello goodbye,a hard day's night,penny lane,strawberry fields forever,eleanor rigby,blackbird,in my life",
+"something,lucy in the sky with diamonds,ob la di ob la da,get back,can't buy me love,day tripper,we can work it out,love me do,all my loving,norwegian wood,while my guitar gently weeps,i am the walrus,revolution,ticket to ride,paperback writer,drive my car,here there and everywhere,octopus's garden,the long and winding road,sgt pepper's lonely hearts club band/sgt pepper,with a little help from my friends,a day in the life,back in the ussr",
+"across the universe,dear prudence,eight days a week,i saw her standing there,please please me,nowhere man,michelle,girl,taxman,got to get you into my life,good day sunshine,i've just seen a face,and i love her,if i fell,the ballad of john and yoko,don't let me down,helter skelter,golden slumbers,carry that weight,the end,because,i want you,oh darling,maxwell's silver hammer,you've got to hide your love away,tomorrow never knows,rain,i feel fine,magical mystery tour,the fool on the hill,lady madonna,hey bulldog,all together now,julia,martha my dear,rocky raccoon,birthday,i will,two of us",
+"savoy truffle,wild honey pie,glass onion,piggies,long long long,honey pie,mother nature's son,everybody's got something to hide except me and my monkey,sexy sadie,revolution 9,good night,yer blues,cry baby cry,the continuing story of bungalow bill,why don't we do it in the road,dig a pony,dig it,maggie mae,for you blue,i me mine,one after 909,i've got a feeling,mean mr mustard,polythene pam,she came in through the bathroom window,her majesty,sun king,you never give me your money,only a northern song,it's all too much,baby you're a rich man,blue jay way,flying,your mother should know,within you without you,love you to,doctor robert,and your bird can sing,i'm only sleeping,she said she said,for no one,wait,think for yourself,the word,run for your life,what goes on,words of love,honey don't,everybody's trying to be my baby,mr moonlight,baby's in black,i'll follow the sun,no reply,i'm a loser,tell me what you see,you like me too much,dizzy miss lizzy,act naturally,it won't be long,little child,not a second time,money,devil in her heart,roll over beethoven,chains,anna,boys,misery,there's a place,baby it's you,ask me why,ps i love you,do you want to know a secret,thank you girl,this boy,i'll get you,from me to you,free as a bird,now and then,real love"]},
+{p:"Name a sea creature that isn't a fish", h:"loriciferan", t:[
+"whale,dolphin,octopus,jellyfish,crab,starfish/sea star,lobster,shrimp",
+"squid,sea turtle/turtle,seal,sea lion,sea urchin,clam,oyster,krill,walrus,sea otter/otter,coral,manatee,orca/killer whale",
+"sea cucumber,sea anemone/anemone,mussel,scallop,barnacle,nautilus,cuttlefish,sea sponge/sponge,narwhal,beluga,porpoise,dugong,plankton,sea slug/nudibranch,hermit crab,portuguese man o war/man o war,penguin,conch,horseshoe crab,sand dollar",
+"copepod,isopod/giant isopod,amphipod,siphonophore,comb jelly/ctenophore,salp,sea squirt/tunicate,sea pen,sea lily/crinoid,brittle star,feather star,sea butterfly/pteropod,sea angel,vampire squid,dumbo octopus,mantis shrimp,pistol shrimp,coconut crab,japanese spider crab/spider crab,tube worm/giant tube worm,bristle worm/polychaete,bobbit worm,sea spider,chiton,limpet,abalone,cowrie,whelk,periwinkle,sea hare,blue dragon/glaucus,velella/by the wind sailor,box jellyfish/sea wasp,lion's mane jellyfish,immortal jellyfish,vaquita",
+"lancelet/amphioxus,acorn worm,arrow worm/chaetognath,larvacean,pyrosome,hydroid,bryozoan,brachiopod,xenophyophore,foraminifera,radiolarian,coccolithophore,diatom,dinoflagellate,tardigrade,kinorhynch,peanut worm/sipunculid,spoon worm/echiuran,ribbon worm/nemertean,yeti crab,scaly foot snail,pompeii worm,zombie worm/osedax,sea pig,feather duster worm,christmas tree worm,sea gooseberry,phronima,gooseneck barnacle,decorator crab,sea nettle"]},
+{p:"Name a Harry Potter character", h:"eloise midgen", t:[
+"harry potter/harry,hermione/hermione granger,ron/ron weasley,dumbledore/albus dumbledore,voldemort/tom riddle,snape/severus snape,hagrid",
+"draco/draco malfoy/malfoy,sirius black/sirius,dobby,neville/neville longbottom,luna/luna lovegood,ginny/ginny weasley,fred weasley/fred,george weasley/george,mcgonagall,bellatrix/bellatrix lestrange,lupin/remus lupin,dudley/dudley dursley,hedwig,cedric diggory/cedric",
+"lucius malfoy,umbridge/dolores umbridge,peter pettigrew/wormtail,percy weasley/percy,molly weasley,arthur weasley,bill weasley,charlie weasley,vernon dursley,petunia dursley,cho chang,filch/argus filch,moody/mad eye moody,tonks,kreacher,fawkes,buckbeak,crookshanks,scabbers,nagini,aragog,fluffy,grindelwald,quirrell,lockhart/gilderoy lockhart,slughorn,moaning myrtle/myrtle,nearly headless nick,peeves,james potter,lily potter,seamus finnigan/seamus,dean thomas,fleur delacour/fleur,viktor krum/krum",
+"kingsley shacklebolt,oliver wood,lavender brown,parvati patil,padma patil,crabbe,goyle,pansy parkinson,ollivander,griphook,trelawney,flitwick,sprout,madam pomfrey,madam hooch,cornelius fudge/fudge,scrimgeour,barty crouch,ludo bagman,winky,firenze,grawp,hokey,mrs norris,bathilda bagshot,xenophilius lovegood,aberforth/aberforth dumbledore,ariana dumbledore,fenrir greyback,dolohov,rookwood,yaxley,narcissa malfoy,regulus black,andromeda tonks,ted tonks,teddy lupin,colin creevey,dennis creevey,zacharias smith,ernie macmillan,hannah abbott,justin finch fletchley,katie bell,angelina johnson,lee jordan,cormac mclaggen,romilda vane,marcus flint,mundungus fletcher,arabella figg,hepzibah smith,morfin gaunt,marvolo gaunt,merope gaunt,gregorovitch,madame maxime/olympe maxime,karkaroff,rita skeeter",
+"stan shunpike,ernie prang,dedalus diggle,elphias doge,hestia jones,sturgis podmore,emmeline vance,amelia bones,susan bones,mafalda hopkirk,bob ogden,mary cattermole,reg cattermole,gornuk,dirk cresswell,wilkie twycross,professor binns/cuthbert binns,silvanus kettleburn,grubbly plank,septima vector,aurora sinistra,charity burbage,bathsheda babbling,madam pince/irma pince,madam rosmerta/rosmerta,ambrosius flume,florean fortescue,scabior,amycus carrow,alecto carrow,walden macnair,phineas nigellus/phineas nigellus black,dilys derwent,armando dippet,the fat lady,sir cadogan,the grey lady/helena ravenclaw,the bloody baron,the fat friar,kendra dumbledore,ignotus peverell,cadmus peverell,antioch peverell,nicolas flamel,perenelle flamel"]}
+];
+
+// Peer-to-peer stand-in for the artifact `room` API, so the standalone build needs no accounts.
+// The host's browser is the hub: players connect to it over WebRTC (PeerJS) and it relays everyone's presence.
+const PeerRoom = (() => {
+  const PREFIX = 'trench-trivia-v1-';
+  function join(name, asHost) {
+    return new Promise((resolve, reject) => {
+      const hostId = PREFIX + name;
+      const peer = asHost ? new Peer(hostId) : new Peer();
+      const list = new Map();         // peer id -> presence
+      const handlers = [];
+      const conns = new Map();
+      let myId = null, hostConn = null, settled = false, mine = {};
+      const snapshot = () => [...list].map(([id, presence]) => ({ peer: id, presence, sameTab: id === myId, isMe: id === myId }));
+      const fire = () => { const ch = { peers: snapshot() }; handlers.forEach(h => { try { h(ch); } catch (e) { console.error(e); } }); };
+      const broadcast = () => {
+        const msg = { type: 'peers', list: [...list] };
+        for (const c of conns.values()) if (c.open) c.send(msg);
+        fire();
+      };
+      const api = {
+        name,
+        presence(patch) {
+          for (const k in patch) { if (patch[k] === null) delete mine[k]; else mine[k] = patch[k]; }
+          mine = JSON.parse(JSON.stringify(mine));
+          if (asHost) { list.set(myId, mine); broadcast(); }
+          else if (hostConn && hostConn.open) { hostConn.send({ type: 'presence', p: mine }); list.set(myId, mine); fire(); }
+          return Promise.resolve();
+        },
+        peers: snapshot,
+        onPeers(fn) { handlers.push(fn); setTimeout(() => fn({ peers: snapshot() }), 0); return () => { const i = handlers.indexOf(fn); if (i >= 0) handlers.splice(i, 1); }; },
+        leave() { try { peer.destroy(); } catch (_) {} return Promise.resolve(); },
+      };
+      const fail = msg => { if (!settled) { settled = true; try { peer.destroy(); } catch (_) {} reject(new Error(msg)); } };
+      setTimeout(() => fail('timeout'), 12000);
+      peer.on('error', err => {
+        if (!settled) fail(err.type === 'peer-unavailable' ? 'No game with that code.' : err.type === 'unavailable-id' ? 'Code taken, try again.' : 'Could not connect.');
+        else if (!asHost && (err.type === 'peer-unavailable' || err.type === 'network')) { list.clear(); fire(); }
+      });
+      peer.on('disconnected', () => { try { peer.reconnect(); } catch (_) {} });
+      peer.on('open', id => {
+        myId = id;
+        if (asHost) {
+          list.set(myId, mine);
+          peer.on('connection', c => {
+            c.on('open', () => { conns.set(c.peer, c); c.send({ type: 'peers', list: [...list] }); });
+            c.on('data', d => { if (d && d.type === 'presence' && d.p && typeof d.p === 'object') { list.set(c.peer, d.p); broadcast(); } });
+            const drop = () => { conns.delete(c.peer); if (list.delete(c.peer)) broadcast(); };
+            c.on('close', drop); c.on('error', drop);
+          });
+          settled = true; resolve(api);
+        } else {
+          hostConn = peer.connect(hostId, { reliable: true });
+          hostConn.on('open', () => { settled = true; hostConn.send({ type: 'presence', p: mine }); resolve(api); });
+          hostConn.on('data', d => {
+            if (d && d.type === 'peers' && Array.isArray(d.list)) {
+              list.clear();
+              for (const [id, p] of d.list) list.set(id, id === myId ? mine : p);
+              list.set(myId, mine);
+              fire();
+            }
+          });
+          hostConn.on('close', () => { list.clear(); fire(); });
+        }
+      });
+    });
+  }
+  return { join };
+})();
+
+</script>
+<script>
+(() => {
+const TIERS = [
+  { n: 'Surface', pts: 10 }, { n: 'Sunlight', pts: 20 }, { n: 'Twilight', pts: 40 },
+  { n: 'Midnight', pts: 60 }, { n: 'Abyss', pts: 85 }, { n: 'Hadal', pts: 100 },
+];
+const ROUNDS = 7, SECS = 25, M_PER_PT = 4, MAX_DEPTH = ROUNDS * 100 * M_PER_PT;
+const COLORS = ['var(--p1)', 'var(--p2)', 'var(--p3)'];
+const $main = document.getElementById('main'), $gauges = document.getElementById('gauges'), $meta = document.getElementById('meta');
+
+/* ---------- answer matching ---------- */
+function norm(s) {
+  return String(s).toLowerCase().replace(/\+\+/g, ' plus plus ').replace(/#/g, ' sharp ')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/&/g, ' and ')
+    .replace(/['\u2019`.]/g, '').replace(/[^a-z0-9]+/g, ' ').trim().replace(/^(the|a|an) /, '');
+}
+const INDEX = BANK.map(q => {
+  const map = new Map();
+  const add = (group, tier) => group.split(',').forEach(entry => {
+    const alts = entry.split('/').map(s => s.trim()).filter(Boolean);
+    if (!alts.length) return;
+    const key = norm(alts[0]);
+    for (const a of alts) {
+      const k = norm(a);
+      if (k && !map.has(k)) map.set(k, { tier, disp: alts[0], key });
+    }
+  });
+  add(q.h, 5);
+  q.t.forEach((g, i) => add(g, i));
+  return map;
+});
+function lev(a, b, cap) {
+  if (Math.abs(a.length - b.length) > cap) return cap + 1;
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i]; let best = i;
+    for (let j = 1; j <= b.length; j++) {
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      if (cur[j] < best) best = cur[j];
+    }
+    if (best > cap) return cap + 1;
+    prev = cur;
+  }
+  return prev[b.length];
+}
+function judge(qid, text) {
+  const map = INDEX[qid], k = norm(text);
+  if (!k) return null;
+  for (const c of [k, k.replace(/es$/, ''), k.replace(/s$/, ''), k + 's']) if (map.has(c)) return map.get(c);
+  if (k.length < 5) return null;
+  const cap = k.length >= 9 ? 2 : 1;
+  let best = null, bd = cap + 1;
+  for (const [key, v] of map) { const d = lev(k, key, cap); if (d < bd) { bd = d; best = v; if (!d) break; } }
+  return best;
+}
+
+/* ---------- shared game model ---------- */
+function newGame() {
+  const ids = BANK.map((_, i) => i);
+  for (let i = ids.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [ids[i], ids[j]] = [ids[j], ids[i]]; }
+  return { phase: 'lobby', seats: [], order: ids.slice(0, ROUNDS), qi: 0, left: SECS, ans: {}, tot: [0, 0, 0], last: [] };
+}
+function settle(g) {
+  const counts = {};
+  for (const s of g.seats) { const a = g.ans[s.id]; if (a) counts[a.k] = (counts[a.k] || 0) + 1; }
+  g.last = g.seats.map((s, i) => {
+    const a = g.ans[s.id];
+    if (!a) return 0;
+    const shared = counts[a.k] > 1;
+    const pts = shared ? Math.round(TIERS[a.r].pts / 2) : TIERS[a.r].pts;
+    a.p = pts; a.sh = shared ? 1 : 0;
+    g.tot[i] += pts;
+    return pts;
+  });
+  g.phase = 'reveal';
+}
+function nextQuestion(g) {
+  if (g.qi >= ROUNDS - 1) { g.phase = 'final'; return; }
+  g.qi++; g.ans = {}; g.left = SECS; g.phase = 'q';
+}
+const depth = pts => pts * M_PER_PT;
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const cleanName = s => String(s || '').replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028-\u202e\u2060-\u206f]/g, '').trim().slice(0, 14);
+
+/* ---------- app state ---------- */
+let mode = 'home';        // home | host | client | local
+let G = null;             // the game state being shown
+let room = null, R = null, roomReady = 'wait';
+let code = '', myName = '', myPeer = null, hostSeen = false, hostGone = false;
+let tick = null, deadline = 0;
+let local = { turn: 0, step: 'pass' }; // pass-and-play sub-state
+let lastScreen = '', myLocked = null, feedback = { text: '', cls: '' };
+try { myName = localStorage.getItem('tt-name') || ''; } catch (_) {}
+
+(async () => {
+  room = window.Peer ? PeerRoom : null;
+  roomReady = room ? 'yes' : 'no';
+  if (mode === 'home') draw(true);
+})();
+setTimeout(() => { if (roomReady === 'wait') { roomReady = 'no'; if (mode === 'home') draw(true); } }, 11000);
+
+function mySeatIndex() {
+  if (!G) return -1;
+  if (mode === 'host') return 0;
+  if (mode === 'client') return G.seats.findIndex(s => s.id === myPeer);
+  if (mode === 'local' && G.phase === 'q') return local.turn;
+  return -1;
+}
+
+/* ---------- online: host ---------- */
+async function hostGame() {
+  myName = cleanName(document.getElementById('nm').value) || 'Host';
+  saveName();
+  const A = 'ABCDEFGHJKMNPQRSTUVWXYZ';
+  code = Array.from({ length: 4 }, () => A[Math.floor(Math.random() * A.length)]).join('');
+  try { R = await room.join(code.toLowerCase(), true); }
+  catch (e) { return toast(e.message === 'Code taken, try again.' ? 'That code was taken. Click Host again.' : 'Could not open a game. Check your internet connection and try again.'); }
+  mode = 'host';
+  G = newGame();
+  G.seats = [{ id: 'host', name: myName }];
+  R.onPeers(() => hostSync());
+  pushState();
+  draw(true);
+}
+function hostSync() {
+  if (mode !== 'host' || !G) return;
+  const peers = R.peers().filter(p => !p.sameTab && p.presence && p.presence.role === 'player' && p.presence.code === code);
+  let changed = false;
+  if (G.phase === 'lobby') {
+    const before = JSON.stringify(G.seats);
+    G.seats = G.seats.filter(s => s.id === 'host' || peers.some(p => p.peer === s.id));
+    for (const p of peers) {
+      const nm = cleanName(p.presence.name) || 'Diver';
+      const seat = G.seats.find(s => s.id === p.peer);
+      if (seat) seat.name = nm;
+      else if (G.seats.length < 3) G.seats.push({ id: p.peer, name: nm });
+    }
+    changed = JSON.stringify(G.seats) !== before;
+  }
+  if (G.phase === 'q') {
+    for (const s of G.seats) {
+      if (s.id === 'host' || G.ans[s.id]) continue;
+      const p = peers.find(x => x.peer === s.id);
+      const sub = p && p.presence.sub;
+      if (sub && sub.qi === G.qi && typeof sub.text === 'string') {
+        const j = judge(G.order[G.qi], sub.text.slice(0, 80));
+        if (j) { G.ans[s.id] = { t: j.disp, k: j.key, r: j.tier }; changed = true; }
+      }
+    }
+    if (G.seats.every(s => G.ans[s.id] || (s.id !== 'host' && !peers.some(p => p.peer === s.id)))) { endQuestion(); return; }
+  }
+  if (changed) { pushState(); draw(); }
+}
+function pushState() { if (R && mode === 'host') R.presence({ role: 'host', code, g: G }).catch(() => {}); }
+function startClock() {
+  clearInterval(tick);
+  deadline = Date.now() + SECS * 1000;
+  tick = setInterval(() => {
+    if (!G || G.phase !== 'q') return;
+    const left = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+    if (left !== G.left) {
+      G.left = left;
+      if (mode === 'host') pushState();
+      draw();
+    }
+    if (left <= 0) { if (mode === 'host') endQuestion(); else if (mode === 'local') localTimeout(); }
+  }, 200);
+}
+function hostStart() {
+  if (G.seats.length < 2) return;
+  G.phase = 'q'; G.qi = 0; G.ans = {}; G.left = SECS; G.tot = [0, 0, 0];
+  myLocked = null; feedback = { text: '', cls: '' };
+  startClock(); pushState(); draw(true);
+}
+function endQuestion() {
+  clearInterval(tick);
+  if (G.phase !== 'q') return;
+  settle(G); pushState(); draw(true);
+}
+function hostNext() {
+  nextQuestion(G);
+  myLocked = null; feedback = { text: '', cls: '' };
+  if (G.phase === 'q') startClock();
+  pushState(); draw(true);
+}
+function hostAgain() {
+  const seats = G.seats;
+  G = newGame(); G.seats = seats;
+  pushState(); draw(true);
+}
+
+/* ---------- online: player ---------- */
+async function joinGame() {
+  const c = document.getElementById('jc').value.trim().toUpperCase().replace(/[^A-Z]/g, '');
+  myName = cleanName(document.getElementById('nm').value) || 'Diver';
+  saveName();
+  if (c.length !== 4) return toast('Game codes are 4 letters.');
+  toast('Connecting…');
+  try { R = await room.join(c.toLowerCase(), false); }
+  catch (e) { return toast(e.message === 'No game with that code.' ? 'No game with code ' + c + '. Check it with your host.' : 'Could not connect to that game. Try again, or try another network.'); }
+  code = c; mode = 'client'; G = null; hostSeen = false; hostGone = false;
+  R.presence({ role: 'player', code, name: myName, sub: null }).catch(() => {});
+  R.onPeers(ch => {
+    const me = ch.peers.find(p => p.sameTab); if (me) myPeer = me.peer;
+    const host = ch.peers.find(p => !p.sameTab && p.presence && p.presence.role === 'host' && p.presence.code === code);
+    if (host && host.presence.g) {
+      const prev = G; G = host.presence.g; hostSeen = true; hostGone = false;
+      if (prev && (prev.qi !== G.qi || prev.phase !== G.phase) && G.phase === 'q') { myLocked = null; feedback = { text: '', cls: '' }; R.presence({ sub: null }).catch(() => {}); }
+      draw();
+    } else if (hostSeen) { hostGone = true; draw(true); }
+  });
+  setTimeout(() => { if (mode === 'client' && !hostSeen) { hostGone = true; draw(true); } }, 8000);
+  draw(true);
+}
+
+/* ---------- pass and play ---------- */
+function startLocal() {
+  const names = [0, 1, 2].map(i => cleanName(document.getElementById('ln' + i).value) || ['Diver 1', 'Diver 2', 'Diver 3'][i]);
+  mode = 'local';
+  G = newGame();
+  G.seats = names.map((n, i) => ({ id: 'p' + i, name: n }));
+  G.phase = 'q'; local = { turn: 0, step: 'pass' };
+  draw(true);
+}
+function localBegin() { local.step = 'answer'; G.left = SECS; myLocked = null; feedback = { text: '', cls: '' }; startClock(); draw(true); }
+function localAdvance() {
+  clearInterval(tick);
+  if (local.turn < G.seats.length - 1) { local.turn++; local.step = 'pass'; draw(true); }
+  else { settle(G); draw(true); }
+}
+function localTimeout() { localAdvance(); }
+function localNext() {
+  nextQuestion(G);
+  local = { turn: 0, step: 'pass' };
+  draw(true);
+}
+
+/* ---------- answering ---------- */
+function submit() {
+  const inp = document.getElementById('ans');
+  if (!inp || !G || G.phase !== 'q') return;
+  const text = inp.value.trim();
+  if (!text) return;
+  const j = judge(G.order[G.qi], text);
+  if (!j) {
+    feedback = { text: `“${text.slice(0, 40)}” isn't on the chart. Try another.`, cls: 'bad' };
+    inp.select(); setFeedback();
+    return;
+  }
+  myLocked = { t: j.disp, k: j.key, r: j.tier };
+  if (mode === 'host') { G.ans.host = myLocked; hostSync(); pushState(); }
+  else if (mode === 'client') { R.presence({ sub: { qi: G.qi, text } }).catch(() => {}); }
+  else if (mode === 'local') { clearInterval(tick); G.ans[G.seats[local.turn].id] = myLocked; draw(true); setTimeout(localAdvance, 900); return; }
+  draw(true);
+}
+function setFeedback() { const f = document.getElementById('fb'); if (f) { f.textContent = feedback.text; f.className = 'feedback ' + feedback.cls; } }
+
+/* ---------- rendering ---------- */
+function bgFor(m) {
+  const t = Math.pow(Math.min(1, m / MAX_DEPTH), 0.7);
+  const a = [11, 69, 96], b = [1, 5, 12];
+  const c = a.map((v, i) => Math.round(v + (b[i] - v) * t));
+  return `rgb(${c.join(',')})`;
+}
+function ladderHTML() {
+  return `<div class="ladder">${TIERS.map((t, i) => `<div class="rung" style="--c:var(--t${i})"><i></i><span>${t.n}</span><span>${t.pts} pts</span><span>${depth(t.pts)} m</span></div>`).join('')}</div>`;
+}
+function seatList(showStatus) {
+  const out = [];
+  for (let i = 0; i < 3; i++) {
+    const s = G.seats[i];
+    if (!s) { out.push(`<div class="seat empty" style="--c:var(--faint)"><span class="nm">Waiting for a diver…</span></div>`); continue; }
+    const you = (mode === 'host' && i === 0) || (mode === 'client' && s.id === myPeer);
+    const st = showStatus ? (G.ans[s.id] ? 'locked in' : 'thinking') : (you ? 'you' : 'ready');
+    out.push(`<div class="seat" style="--c:${COLORS[i]}"><span class="nm">${esc(s.name)}</span><span class="st">${st}</span></div>`);
+  }
+  return `<div class="seats">${out.join('')}</div>`;
+}
+function timerHTML() {
+  const pct = (G.left / SECS) * 100;
+  return `<div class="timer ${G.left <= 5 ? 'low' : ''}" id="timer"><div class="track"><b style="width:${pct}%"></b></div><span class="secs">${G.left}s</span></div>`;
+}
+function screenKey() {
+  if (mode === 'home') return 'home:' + roomReady;
+  if (mode === 'client' && (hostGone || !G)) return 'client:wait:' + hostGone;
+  const seat = mySeatIndex();
+  return [mode, G.phase, G.qi, G.seats.map(s => s.id + s.name).join(','), local.turn, local.step, myLocked ? 1 : 0, seat].join('|');
+}
+function draw(force) {
+  const key = screenKey();
+  if (!force && key === lastScreen) { refreshLive(); drawGauges(); return; }
+  lastScreen = key;
+  $main.innerHTML = screen();
+  wire();
+  drawGauges();
+  const a = document.getElementById('ans'); if (a) a.focus();
+  setFeedback();
+}
+function refreshLive() {
+  const t = document.getElementById('timer');
+  if (t && G) t.outerHTML = timerHTML();
+  const s = document.getElementById('seatstat');
+  if (s && G) s.innerHTML = seatList(G.phase === 'q');
+  const w = document.getElementById('lobbyseats');
+  if (w && G) w.innerHTML = seatList(false);
+  const st = document.getElementById('startbtn');
+  if (st && G) st.disabled = G.seats.length < 2;
+}
+function screen() {
+  $meta.innerHTML = '';
+  if (mode === 'home') return homeScreen();
+  if (mode === 'client' && hostGone) return `<h2>Lost the host</h2><p class="lede">${hostSeen ? 'The host left, so this dive is over.' : `No game is running under code <b>${esc(code)}</b>. Check the code with your host.`}</p><div class="row"><button id="home">Back to the dock</button></div>`;
+  if (mode === 'client' && !G) return `<h2>Finding game ${esc(code)}…</h2><p class="lede">Hold on while we ping the host.</p>`;
+  $meta.innerHTML = `${code ? `<span>Code <b>${esc(code)}</b></span>` : '<span>One device</span>'}${G.phase !== 'lobby' ? `<span>Prompt <b>${Math.min(G.qi + 1, ROUNDS)}</b> / ${ROUNDS}</span>` : ''}`;
+  if (G.phase === 'lobby') return lobbyScreen();
+  if (G.phase === 'q') return questionScreen();
+  if (G.phase === 'reveal') return revealScreen();
+  return finalScreen();
+}
+function homeScreen() {
+  const online = roomReady === 'yes';
+  const nameField = `<div class="field"><label for="nm">Your name</label><input id="nm" maxlength="14" value="${esc(myName)}" placeholder="Diver" autocomplete="off"></div>`;
+  return `
+    <h1>Dive for the answer nobody else knows.</h1>
+    <p class="lede">Every prompt has hundreds of right answers. The obvious ones keep you at the surface. The <b>rarer</b> your answer, the more points you score and the deeper you sink. Seven prompts, 25 seconds each, three divers. Deepest dive wins.</p>
+    <div class="modes">
+      <div class="mode">
+        <h3>Play online</h3>
+        ${nameField}
+        <div class="row"><button id="host" ${online ? '' : 'disabled'}>Host a game</button></div>
+        <div class="row"><input id="jc" class="code" maxlength="4" placeholder="CODE" autocomplete="off" ${online ? '' : 'disabled'}><button id="join" class="ghost" ${online ? '' : 'disabled'}>Join</button></div>
+        <p class="note">${roomReady === 'wait' ? 'Connecting…' : online ? 'Each friend opens this page on their own device and joins with your code.' : 'Online play could not load. Check your internet connection. Pass and play still works.'}</p>
+      </div>
+      <div class="mode">
+        <h3>Pass and play</h3>
+        ${[0, 1, 2].map(i => `<div class="field"><label for="ln${i}">Diver ${i + 1}</label><input id="ln${i}" maxlength="14" placeholder="Diver ${i + 1}" autocomplete="off" style="border-left:4px solid ${COLORS[i]}"></div>`).join('')}
+        <div class="row"><button id="local" class="ghost">Start on this device</button></div>
+      </div>
+    </div>
+    <div class="stack"><h3>The depth chart</h3>${ladderHTML()}<p class="note">Each point takes you ${M_PER_PT} m deeper. If two divers give the same answer, they each get half. Every prompt hides exactly one Hadal answer.</p></div>`;
+}
+function lobbyScreen() {
+  if (mode === 'host') return `
+    <h3>Your game code</h3>
+    <div class="bigcode">${esc(code)}</div>
+    <p class="lede">Send your friends the link to this page and this code. Keep this tab open: your browser runs the game. They open the page, pick <b>Join</b>, and enter it.</p>
+    <div id="lobbyseats">${seatList(false)}</div>
+    <div class="row"><button id="startbtn" ${G.seats.length < 2 ? 'disabled' : ''}>Start the dive</button><button id="home" class="ghost">Leave</button><span class="note">Needs at least 2 divers. 3 is the full 1v1v1.</span></div>`;
+  const seated = mySeatIndex() >= 0;
+  return `<h2>${seated ? 'You’re in. Waiting for the host to start.' : G.seats.length >= 3 ? 'This game is full.' : 'Taking a seat…'}</h2>
+    <div id="lobbyseats">${seatList(false)}</div>
+    <div class="row"><button id="home" class="ghost">Leave</button></div>`;
+}
+function questionScreen() {
+  const q = BANK[G.order[G.qi]];
+  if (mode === 'local' && local.step === 'pass') {
+    const s = G.seats[local.turn];
+    return `<h3>Prompt ${G.qi + 1} of ${ROUNDS}</h3>
+      <h2>Pass the device to <span style="color:${COLORS[local.turn]}">${esc(s.name)}</span></h2>
+      <p class="lede">Everyone else, look away. The prompt appears when ${esc(s.name)} is ready.</p>
+      <div class="row"><button id="ready">I’m ${esc(s.name)}, show the prompt</button></div>`;
+  }
+  const seat = mySeatIndex();
+  const spectator = seat < 0;
+  const mine = mode === 'local' ? G.ans[G.seats[local.turn].id] : (mode === 'host' ? G.ans.host : myLocked);
+  const body = spectator
+    ? `<p class="lede">You’re watching this one.</p>`
+    : mine
+      ? `<div class="locked" style="--c:var(--t${mine.r})"><span class="tag">Locked in</span><span class="ans">${esc(mine.t)}</span><span><span class="chip" style="--c:var(--t${mine.r})">${TIERS[mine.r].n}</span></span><span class="note">Your score shows after everyone answers.${mode !== 'local' ? ' Points are halved if someone gave the same answer.' : ''}</span></div>`
+      : `<div class="answerbar"><input id="ans" maxlength="60" placeholder="Your rarest answer" autocomplete="off" spellcheck="false" aria-label="Your answer"><button id="go">Dive</button></div><div class="feedback" id="fb"></div>`;
+  return `<h3>Prompt ${G.qi + 1} of ${ROUNDS}${mode === 'local' ? ` · ${esc(G.seats[local.turn].name)}` : ''}</h3>
+    <p class="prompt">${esc(q.p)}</p>
+    ${timerHTML()}
+    ${body}
+    ${mode !== 'local' ? `<div id="seatstat">${seatList(true)}</div>` : ''}`;
+}
+function revealScreen() {
+  const qid = G.order[G.qi], q = BANK[qid];
+  const rows = G.seats.map((s, i) => {
+    const a = G.ans[s.id];
+    return `<div class="res" style="--c:${COLORS[i]}">
+      <span class="who">${esc(s.name)}</span>
+      ${a ? `<span class="what">${esc(a.t)} <span class="chip" style="--c:var(--t${a.r})">${TIERS[a.r].n}</span>${a.sh ? ' <span class="chip" style="--c:var(--dim)">shared ½</span>' : ''}</span>` : `<span class="what none">No answer. Stayed at the surface.</span>`}
+      <span class="pts">+${G.last[i] || 0}<small>${depth(G.last[i] || 0)} m</small></span></div>`;
+  }).join('');
+  const deep = [];
+  const pick = (tier, n) => {
+    const seen = new Set(), pool = [];
+    for (const v of INDEX[qid].values()) if (v.tier === tier && !seen.has(v.key)) { seen.add(v.key); pool.push(v.disp); }
+    for (let i = 0; i < n && pool.length; i++) deep.push([tier, pool.splice(Math.floor(Math.random() * pool.length), 1)[0]]);
+  };
+  pick(5, 1); pick(4, 3); pick(3, 2);
+  const canNext = mode !== 'client';
+  const last = G.qi >= ROUNDS - 1;
+  return `<h3>Prompt ${G.qi + 1} of ${ROUNDS} · results</h3>
+    <p class="prompt">${esc(q.p)}</p>
+    <div class="results">${rows}</div>
+    <div class="stack"><h3>Deeper water you could have reached</h3><div class="deeper">${deep.map(([t, d]) => `<span class="chip" style="--c:var(--t${t})">${esc(d)} · ${TIERS[t].pts}</span>`).join('')}</div></div>
+    <div class="row">${canNext ? `<button id="next">${last ? 'See final depths' : 'Next prompt'}</button>` : `<span class="note">Waiting for the host to send the next prompt…</span>`}</div>`;
+}
+function finalScreen() {
+  const ranked = G.seats.map((s, i) => ({ s, i, pts: G.tot[i] })).sort((a, b) => b.pts - a.pts);
+  const top = ranked[0], tie = ranked.filter(r => r.pts === top.pts).length > 1;
+  const zone = m => m >= 2000 ? 'the hadal trench' : m >= 1000 ? 'the midnight zone' : m >= 200 ? 'the twilight zone' : 'the sunlit shallows';
+  return `<h3>Dive complete</h3>
+    <h2>${tie ? 'A tie at the bottom.' : `<span style="color:${COLORS[top.i]}">${esc(top.s.name)}</span> dived deepest.`}</h2>
+    <p class="lede">${tie ? `${ranked.filter(r => r.pts === top.pts).map(r => esc(r.s.name)).join(' and ')} both reached ${depth(top.pts)} m.` : `${depth(top.pts)} m down, into ${zone(depth(top.pts))}.`}</p>
+    <div class="podium">${ranked.map((r, k) => `<div class="res" style="--c:${COLORS[r.i]}"><span class="who">${k + 1}${['st', 'nd', 'rd'][k]} · ${esc(r.s.name)}</span><span class="what">${depth(r.pts)} m</span><span class="pts">${r.pts}<small>points</small></span></div>`).join('')}</div>
+    <div class="row">${mode === 'host' ? '<button id="again">New dive, same crew</button>' : mode === 'local' ? '<button id="againl">Play again</button>' : '<span class="note">The host can start a new dive.</span>'}<button id="home" class="ghost">Back to the dock</button></div>`;
+}
+function drawGauges() {
+  const seats = G && mode !== 'home' ? G.seats : [{ name: 'Diver 1' }, { name: 'Diver 2' }, { name: 'Diver 3' }];
+  const tot = G && mode !== 'home' ? G.tot : [0, 0, 0];
+  const marks = [0, 200, 1000, 2000, MAX_DEPTH];
+  const y = m => (Math.min(m, MAX_DEPTH) / MAX_DEPTH) * 100;
+  const cols = [0, 1, 2].map(i => {
+    const s = seats[i], m = depth(tot[i] || 0);
+    return `<div class="col" style="--c:${s ? COLORS[i] : 'var(--faint)'}">${marks.slice(1, -1).map(mk => `<div class="zone" style="top:${y(mk)}%"></div>`).join('')}${s ? `<div class="line" style="height:${y(m)}%"></div><div class="diver" style="top:calc(${Math.max(3, Math.min(97, y(m)))}%)"></div>` : ''}</div>`;
+  }).join('');
+  const names = [0, 1, 2].map(i => {
+    const s = seats[i];
+    return s ? `<div style="--c:${COLORS[i]}"><div class="n">${esc(s.name)}</div><div class="d">${depth(tot[i] || 0)} m</div><div class="s">${tot[i] || 0} pts</div></div>` : `<div><div class="n" style="--c:var(--dim)">empty</div></div>`;
+  }).join('');
+  $gauges.innerHTML = `<h3>Dive profile</h3>
+    <div class="gwrap"><div class="scale">${marks.map(mk => `<span style="top:${y(mk)}%">${mk} m</span>`).join('')}</div>${cols}</div>
+    <div class="gnames"><div></div>${names}</div>`;
+  const me = mySeatIndex();
+  const focus = mode === 'home' || !G ? 0 : me >= 0 && mode !== 'local' ? depth(G.tot[me]) : depth(Math.max(...G.tot));
+  document.body.style.background = bgFor(focus);
+}
+
+/* ---------- events ---------- */
+function on(id, fn) { const el = document.getElementById(id); if (el) el.onclick = fn; }
+function wire() {
+  on('host', hostGame);
+  on('join', joinGame);
+  on('local', startLocal);
+  on('startbtn', hostStart);
+  on('go', submit);
+  on('ready', localBegin);
+  on('next', () => mode === 'host' ? hostNext() : localNext());
+  on('again', hostAgain);
+  on('againl', () => { const names = G.seats.map(s => s.name); G = newGame(); G.seats = names.map((n, i) => ({ id: 'p' + i, name: n })); G.phase = 'q'; local = { turn: 0, step: 'pass' }; draw(true); });
+  on('home', goHome);
+  const a = document.getElementById('ans');
+  if (a) a.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); submit(); } };
+  const jc = document.getElementById('jc');
+  if (jc) jc.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); joinGame(); } };
+}
+function goHome() {
+  clearInterval(tick);
+  if (R) { R.leave().catch(() => {}); R = null; }
+  mode = 'home'; G = null; code = ''; myLocked = null; hostGone = false; hostSeen = false;
+  draw(true);
+}
+function saveName() { try { localStorage.setItem('tt-name', myName); } catch (_) {} }
+function toast(msg) { feedback = { text: msg, cls: 'bad' }; let n = document.getElementById('toast'); if (!n) { n = document.createElement('p'); n.id = 'toast'; n.className = 'feedback bad'; $main.prepend(n); } n.textContent = msg; }
+
+draw(true);
+})();
+</script>
+
+</body>
+</html>
